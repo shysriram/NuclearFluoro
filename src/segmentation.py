@@ -4,11 +4,11 @@ from skimage import filters, morphology, measure
 from scipy import ndimage
 import pandas as pd
 from pathlib import Path
+from cellpose import models
 
 
 
-
-def process_image(image_path, min_nucleus_size=100, save_labels_path=None):
+def process_image(image_path, method, min_nucleus_size=100, save_labels_path=None):
     """
     Segment nuclei from a fluorescence image and compute per-nucleus measurements.
 
@@ -53,32 +53,76 @@ def process_image(image_path, min_nucleus_size=100, save_labels_path=None):
     # load image
     img = tifffile.imread(image_path)
 
+    if method == "otsu":
+
     # background correction
-    bg = np.median(img)
-    fl_corr = np.clip(img.astype(float) - bg, 0, None)
+        bg = np.median(img)
+        fl_corr = np.clip(img.astype(float) - bg, 0, None)
 
-    # segmentation
-    thresh = filters.threshold_otsu(img - bg)
-    nuc_mask = img > thresh
-    nuc_mask = morphology.remove_small_objects(nuc_mask, min_size=min_nucleus_size)
-    nuc_mask = ndimage.binary_fill_holes(nuc_mask)
-    label_img = measure.label(nuc_mask)
+        # segmentation
+        thresh = filters.threshold_otsu(img - bg)
+        nuc_mask = img > thresh
+        nuc_mask = morphology.remove_small_objects(nuc_mask, min_size=min_nucleus_size)
+        nuc_mask = ndimage.binary_fill_holes(nuc_mask)
+        label_img = measure.label(nuc_mask)
 
-    # save label image (optional)
-    if save_labels_path is not None:
-        save_labels_path = Path(save_labels_path)
-        save_labels_path.mkdir(exist_ok=True, parents=True)
-        tifffile.imwrite(
-            save_labels_path / f"{image_id}_labels.tif",
-            label_img.astype(np.int32)
+        # save label image (optional)
+        if save_labels_path is not None:
+            save_labels_path = Path(save_labels_path)
+            save_labels_path.mkdir(exist_ok=True, parents=True)
+            tifffile.imwrite(
+                save_labels_path / f"{image_id}_labels.tif",
+                label_img.astype(np.int32)
+            )
+
+        # measurements
+        props = measure.regionprops_table(
+            label_img,
+            intensity_image=fl_corr,
+            properties=("label", "area", "mean_intensity")
         )
+    elif method == "cellpose_sam":
+        # Use Cellpose with SAM model for segmentation
+        model = models.CellposeModel(pretrained_model= 'cpsamv2', gpu=True)  #
+        masks, flows, styles = model.eval(img, diameter=None, channels=[0,0])
+        label_img = measure.label(masks)
 
-    # measurements
-    props = measure.regionprops_table(
-        label_img,
-        intensity_image=fl_corr,
-        properties=("label", "area", "mean_intensity")
-    )
+        # save label image (optional)
+        if save_labels_path is not None:
+            save_labels_path = Path(save_labels_path)
+            save_labels_path.mkdir(exist_ok=True, parents=True)
+            tifffile.imwrite(
+                save_labels_path / f"{image_id}_labels.tif",
+                label_img.astype(np.int32)
+            )
+
+        # measurements
+        props = measure.regionprops_table(
+            label_img,
+            intensity_image=img,
+            properties=("label", "area", "mean_intensity")
+        )
+    elif method == "cellpose_dino":
+        # Use Cellpose with DINO model for segmentation
+        model = models.CellposeModel(pretrained_model= 'cpdino', gpu=True)  #
+        masks, flows, styles, diams = model.eval(img, diameter=None, channels=[0,0])
+        label_img = measure.label(masks)
+
+        # save label image (optional)
+        if save_labels_path is not None:
+            save_labels_path = Path(save_labels_path)
+            save_labels_path.mkdir(exist_ok=True, parents=True)
+            tifffile.imwrite(
+                save_labels_path / f"{image_id}_labels.tif",
+                label_img.astype(np.int32)
+            )
+
+        # measurements
+        props = measure.regionprops_table(
+            label_img,
+            intensity_image=img,
+            properties=("label", "area", "mean_intensity")
+        )
 
     df = pd.DataFrame(props)
     df["integrated_intensity"] = df["area"] * df["mean_intensity"]
