@@ -3,11 +3,11 @@ from pathlib import Path
 import pandas as pd 
 import tifffile 
 
-from segmentation import process_image
-from visualization import save_overlay, save_boundaries, save_label_mask
+from src.segmentation import process_image
+from src.visualization import save_overlay, save_boundaries, save_label_mask
 
 
-def run_pipeline(input_dir, output_dir, min_nucleus_size=100):
+def run_pipeline(input_dir, output_dir, min_nucleus_size=100, method="otsu"):
     """
     Run the full image analysis pipeline on all images in the input directory.
 
@@ -51,7 +51,7 @@ def run_pipeline(input_dir, output_dir, min_nucleus_size=100):
     for img_path in sorted(input_dir.glob("*.tif")):
         image_id = img_path.stem
         print(f"Processing {img_path.name}...")
-        label_img, df = process_image(img_path, min_nucleus_size=min_nucleus_size, save_labels_path=labels_dir)
+        label_img, df = process_image(img_path, min_nucleus_size=min_nucleus_size, save_labels_path=labels_dir, method=method)
 
         image = tifffile.imread(img_path)
 
@@ -95,10 +95,11 @@ def main():
                         type=int,
                           default=100, 
                           help="Minimum size (in pixels) for detected nuclei.")
+    parser.add_argument("--method", type=str, default = "otsu", choices = ["otsu", "cellpose_sam", "cellpose_dino"], help="Segmentation method to use: 'otsu' or 'cellpose'.")
     
     args = parser.parse_args()
     
-    run_pipeline(args.input_dir, args.output_dir, args.min_nucleus_size)
+    run_pipeline(args.input_dir, args.output_dir, args.min_nucleus_size, args.method)
 
 
 if __name__ == "__main__":
