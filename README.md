@@ -20,9 +20,9 @@ The pipeline operates on any fluorescence micrscopy data containing nuclear stai
     **Cons:** Cellpose SAM has a strict tile-size constraint of internal 256 x 256 pixel patches due to SAM's fixed position embeddings
 
 ### 3. **Deep Learning Backend: Cellpose DINO (--method 'cellpose_dino')**
- **Mechanics:** Leverages a self-supervised foundation backbone (**DINOv3**) trained to recognize universal visual features, cellular textures, and subtle morphologic gradients without manual annotations
- **Pros:** Cellpose DINO excels at separate highly concentrated clumps of cells or varying cell phenotypes. Additionally, as opposed to Cellpose SAM, DINO features flexible resolution scaling, depending on the user's needs
- **Cons:** Computationally demanding; heavily relies on local hardware acceleration to prevent slow inference times
+ * **Mechanics:** Leverages a self-supervised foundation backbone (**DINOv3**) trained to recognize universal visual features, cellular textures, and subtle morphologic gradients without manual annotations
+ * **Pros:** Cellpose DINO excels at separate highly concentrated clumps of cells or varying cell phenotypes. Additionally, as opposed to Cellpose SAM, DINO features flexible resolution scaling, depending on the user's needs
+ * **Cons:** Computationally demanding; heavily relies on local hardware acceleration to prevent slow inference times
 
 
 
