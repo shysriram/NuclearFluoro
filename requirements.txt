@@ -4,4 +4,5 @@ scikit-image==0.26.0
 scipy==1.16.3
 matplotlib==3.10.7
 tifffile==2025.10.16
+cellpose==4.2.1.1w
 
